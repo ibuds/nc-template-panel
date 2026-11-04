@@ -14,8 +14,8 @@
     'x': '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     'download': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
     'upload': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
-    'scroll-text': '<path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/>',
-    'globe': '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>'
+    'settings': '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+    'arrow-left': '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>'
   };
 
   // Sites where templates go straight into the chat box (optional host permissions, granted by staff).
@@ -376,7 +376,7 @@
       convoLog.unshift(rec);
       if (convoLog.length > 30) convoLog.length = 30;
     }
-    if (!$('log-sheet').hidden) renderLog();
+    if (!$('view-settings').hidden) renderLog();
   }
 
   function logText() {
@@ -411,18 +411,44 @@
     $('log-text').textContent = logText();
   }
 
-  function openLog() {
-    lastFocus = document.activeElement;
+  /* ---------- settings page and theme ---------- */
+
+  function openSettings() {
+    $('f-site').value = '';
+    $('f-site').classList.remove('invalid');
+    refreshAllowed();
     renderLog();
-    $('scrim').hidden = false;
-    $('log-sheet').hidden = false;
-    $('log-close').focus();
+    renderTheme();
+    $('view-main').hidden = true;
+    $('view-settings').hidden = false;
+    $('settings-back').focus();
   }
 
-  function closeLog() {
-    $('scrim').hidden = true;
-    $('log-sheet').hidden = true;
-    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  function closeSettings() {
+    $('view-settings').hidden = true;
+    $('view-main').hidden = false;
+    $('settings-btn').focus();
+  }
+
+  // Stored in localStorage (not chrome.storage) so theme.js can apply it before the first paint.
+  function currentTheme() {
+    try { return localStorage.getItem('theme') || 'system'; } catch (e) { return 'system'; }
+  }
+
+  function applyTheme(t) {
+    try { localStorage.setItem('theme', t); } catch (e) { /* not saved, still applied for now */ }
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    else document.documentElement.removeAttribute('data-theme');
+    renderTheme();
+  }
+
+  function renderTheme() {
+    var t = currentTheme();
+    document.querySelectorAll('[data-theme-choice]').forEach(function (b) {
+      var on = b.getAttribute('data-theme-choice') === t;
+      b.classList.toggle('is-selected', on);
+      b.setAttribute('aria-checked', String(on));
+    });
   }
 
   /* ---------- sites ---------- */
@@ -555,22 +581,6 @@
     drop.then(saveSites).then(refreshAllowed).then(function () { toast('Sites reset to defaults'); });
   }
 
-  function openSites() {
-    lastFocus = document.activeElement;
-    $('f-site').value = '';
-    $('f-site').classList.remove('invalid');
-    $('scrim').hidden = false;
-    $('sites-sheet').hidden = false;
-    refreshAllowed();
-    $('sites-close').focus();
-  }
-
-  function closeSites() {
-    $('scrim').hidden = true;
-    $('sites-sheet').hidden = true;
-    if (lastFocus && lastFocus.focus) lastFocus.focus();
-  }
-
   /* ---------- import / export ---------- */
 
   function exportJson() {
@@ -638,28 +648,29 @@
     $('new-btn').addEventListener('click', function () { openSheet(null); });
     $('sheet-close').addEventListener('click', closeSheet);
     $('sheet-cancel').addEventListener('click', closeSheet);
-    $('scrim').addEventListener('click', function () {
-      if (!$('sheet').hidden) closeSheet();
-      if (!$('sites-sheet').hidden) closeSites();
-      if (!$('log-sheet').hidden) closeLog();
-    });
+    $('scrim').addEventListener('click', closeSheet);
     $('sheet-save').addEventListener('click', saveSheet);
     $('f-body').addEventListener('input', function () { $('f-body').classList.remove('invalid'); });
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
       if (!$('sheet').hidden) closeSheet();
-      if (!$('sites-sheet').hidden) closeSites();
-      if (!$('log-sheet').hidden) closeLog();
+      else if (!$('view-settings').hidden) closeSettings();
     });
 
-    $('log-btn').addEventListener('click', openLog);
-    $('log-close').addEventListener('click', closeLog);
+    $('settings-btn').addEventListener('click', openSettings);
+    $('settings-back').addEventListener('click', closeSettings);
+    document.querySelectorAll('[data-theme-choice]').forEach(function (b) {
+      b.addEventListener('click', function () { applyTheme(b.getAttribute('data-theme-choice')); });
+    });
+    // Another open panel changed the theme.
+    window.addEventListener('storage', function (e) {
+      if (e.key !== 'theme') return;
+      applyTheme(e.newValue || 'system');
+    });
     $('log-clear').addEventListener('click', function () { convoLog = []; renderLog(); });
     $('log-copy').addEventListener('click', function () {
       copyText(logText()).then(function (ok) { toast(ok ? 'Log copied' : 'Could not copy'); });
     });
-    $('sites-btn').addEventListener('click', openSites);
-    $('sites-close').addEventListener('click', closeSites);
     $('banner-allow').addEventListener('click', function () { allowSites(missingSites()); });
     $('sites-allow').addEventListener('click', function () { allowSites(missingSites()); });
     $('sites-reset').addEventListener('click', resetSites);

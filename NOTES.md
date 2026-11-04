@@ -30,7 +30,13 @@ Newest message counts x1, the one before x0.6, then x0.36. Templates scoring 1.5
 
 **Not yet verified on the real sites** (no signed-in session during development): tested on a mock DM page with an inbox column, header, centred timestamps, our replies and "Seen". 
 
-**Chat log** (scroll icon in the header): every read, newest first, with the status (e.g. `Cannot see this tab: its site is not allowed in Sites`, `Reader: no-composer`, `OK`), the customer messages taken, every template's score (including ones below the threshold of 1.5) and, for the newest read, the reader's debug details: message box found, chat pane bounds, text blocks kept and dropped, and the last 12 lines it classified as IN (customer) or OUT (us). **Copy log** puts it on the clipboard. It lives in memory only and is cleared when the panel closes.
+**Chat log** (Settings > Chat log): every read, newest first, with the status (e.g. `Cannot see this tab: its site is not allowed in Sites`, `Reader: no-composer`, `OK`), the customer messages taken, every template's score (including ones below the threshold of 1.5) and, for the newest read, the reader's debug details: message box found, chat pane bounds, text blocks kept and dropped, and the last 12 lines it classified as IN (customer) or OUT (us). **Copy log** puts it on the clipboard. It lives in memory only and is cleared when the panel closes.
+
+## Settings page and theme
+
+The gear icon swaps the template list for a Settings page (`#view-settings`; Esc or the back arrow returns): Appearance, Sites, Backup (Import / Export) and Chat log.
+
+Theme: System (default), Light or Dark, saved in the panel's `localStorage` under `theme`. `theme.js` runs in `<head>` and sets `data-theme` on `<html>` before the first paint, so dark mode never flashes light; it uses `localStorage` rather than `chrome.storage` because the latter is async. System follows `prefers-color-scheme`. Colours are CSS variables on `:root`; the dark set is defined twice in `sidepanel.css` (media query for System, `[data-theme="dark"]` for forced Dark) and both must stay equal. Other open panels follow a change through the `storage` event.
 
 ## Permissions
 
@@ -38,7 +44,7 @@ Newest message counts x1, the one before x0.6, then x0.36. Templates scoring 1.5
 
 ### Sites (direct insert)
 
-The globe button in the header opens **Sites**: the list of sites where a card click goes straight into the chat box. Defaults: `whatsapp.com`, `instagram.com`, `threads.com`, `threads.net`, `tiktok.com`, `x.com`. Each entry is a bare domain and is granted as `https://*.<domain>/*`, which covers the domain itself and every subdomain (`www.`, `web.`). Lists saved by older versions (`www.instagram.com`, `web.whatsapp.com`) are converted on load and their old exact grants removed, so staff click **Allow** once more.
+**Settings > Sites** is the list of sites where a card click goes straight into the chat box. Defaults: `whatsapp.com`, `instagram.com`, `threads.com`, `threads.net`, `tiktok.com`, `x.com`. Each entry is a bare domain and is granted as `https://*.<domain>/*`, which covers the domain itself and every subdomain (`www.`, `web.`). Lists saved by older versions (`www.instagram.com`, `web.whatsapp.com`) are converted on load and their old exact grants removed, so staff click **Allow** once more.
 
 - The defaults are *listed* on install but not yet *allowed*. A banner "Direct insert is off on N sites" shows until staff click **Allow** (one Chrome prompt for all of them).
 - **Add site** takes a domain (`facebook.com`), a host with `www.`, a URL, or a wildcard (`*.example.com`); all become the bare domain, and Chrome is asked for `https://*.<domain>/*` right away.

@@ -5,51 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Templates</title>
 <link rel="stylesheet" href="sidepanel.css">
+<script src="theme.js"></script>
 </head>
 <body>
 <main class="app" id="app">
-  <header class="top">
-    <h1>Templates</h1>
-    <div class="top-actions">
-      <button type="button" class="icon-btn" id="log-btn" aria-label="Chat log" title="Chat log"><span data-icon="scroll-text"></span></button>
-      <button type="button" class="icon-btn" id="sites-btn" aria-label="Sites" title="Sites"><span data-icon="globe"></span></button>
-      <button type="button" class="btn btn-primary" id="new-btn"><span data-icon="plus"></span>New template</button>
-    </div>
-  </header>
-
-  <div class="banner" id="banner" hidden>
-    <span id="banner-text">Direct insert is off on some chat sites.</span>
-    <button type="button" class="btn btn-primary" id="banner-allow">Allow</button>
-  </div>
-
-  <div class="search">
-    <label for="q" class="sr-only">Search templates</label>
-    <span class="search-icon" data-icon="search"></span>
-    <input id="q" type="text" placeholder="Search templates" autocomplete="off">
-  </div>
-
-  <div class="tabs" role="tablist">
-    <button type="button" role="tab" class="tab is-selected" id="tab-active" aria-selected="true">Active <span class="count" id="count-active">0</span></button>
-    <button type="button" role="tab" class="tab" id="tab-archived" aria-selected="false">Archived <span class="count" id="count-archived">0</span></button>
-  </div>
-
-  <section class="list" id="list-wrap">
-    <div class="suggest" id="suggest" hidden>
-      <div class="suggest-head">
-        <span class="cat">Suggested</span>
-        <span class="suggest-from" id="suggest-from"></span>
+  <div class="view" id="view-main">
+    <header class="top">
+      <h1>Templates</h1>
+      <div class="top-actions">
+        <button type="button" class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings"><span data-icon="settings"></span></button>
+        <button type="button" class="btn btn-primary" id="new-btn"><span data-icon="plus"></span>New template</button>
       </div>
-      <div class="suggest-list" id="suggest-list"></div>
-    </div>
-    <div class="grid" id="grid"></div>
-    <p class="empty" id="empty" hidden>No templates match.</p>
-  </section>
+    </header>
 
-  <footer class="foot">
-    <button type="button" class="btn btn-outline" id="import-btn"><span data-icon="upload"></span>Import</button>
-    <button type="button" class="btn btn-outline" id="export-btn"><span data-icon="download"></span>Export</button>
-    <input type="file" id="import-file" accept="application/json,.json" hidden>
-  </footer>
+    <div class="banner" id="banner" hidden>
+      <span id="banner-text">Direct insert is off on some chat sites.</span>
+      <button type="button" class="btn btn-primary" id="banner-allow">Allow</button>
+    </div>
+
+    <div class="search">
+      <label for="q" class="sr-only">Search templates</label>
+      <span class="search-icon" data-icon="search"></span>
+      <input id="q" type="text" placeholder="Search templates" autocomplete="off">
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" class="tab is-selected" id="tab-active" aria-selected="true">Active <span class="count" id="count-active">0</span></button>
+      <button type="button" role="tab" class="tab" id="tab-archived" aria-selected="false">Archived <span class="count" id="count-archived">0</span></button>
+    </div>
+
+    <section class="list" id="list-wrap">
+      <div class="suggest" id="suggest" hidden>
+        <div class="suggest-head">
+          <span class="cat">Suggested</span>
+          <span class="suggest-from" id="suggest-from"></span>
+        </div>
+        <div class="suggest-list" id="suggest-list"></div>
+      </div>
+      <div class="grid" id="grid"></div>
+      <p class="empty" id="empty" hidden>No templates match.</p>
+    </section>
+  </div>
+
+  <div class="view" id="view-settings" hidden>
+    <header class="top top-sub">
+      <button type="button" class="icon-btn" id="settings-back" aria-label="Back to templates" title="Back"><span data-icon="arrow-left"></span></button>
+      <h1>Settings</h1>
+    </header>
+
+    <div class="settings">
+      <section class="section" aria-labelledby="s-theme">
+        <h2 id="s-theme">Appearance</h2>
+        <div class="tabs seg" role="radiogroup" aria-label="Theme">
+          <button type="button" role="radio" class="tab" data-theme-choice="system">System</button>
+          <button type="button" role="radio" class="tab" data-theme-choice="light">Light</button>
+          <button type="button" role="radio" class="tab" data-theme-choice="dark">Dark</button>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="s-sites">
+        <h2 id="s-sites">Sites</h2>
+        <p class="hint">Templates are inserted straight into the chat box on these sites, and Instagram and Threads DMs get suggestions. On any other site, click the toolbar icon on that tab first, or the text is copied instead.</p>
+        <ul class="sites" id="sites-list"></ul>
+        <div class="field">
+          <label for="f-site">Add site</label>
+          <div class="add-row">
+            <input id="f-site" type="text" autocomplete="off" placeholder="facebook.com">
+            <button type="button" class="btn btn-outline" id="site-add">Add</button>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn-outline grow" id="sites-reset">Reset to defaults</button>
+          <button type="button" class="btn btn-primary grow" id="sites-allow">Allow all</button>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="s-backup">
+        <h2 id="s-backup">Backup</h2>
+        <p class="hint">Save all templates to a file, or load a file from a colleague. Importing adds new templates and updates changed ones; nothing is deleted.</p>
+        <div class="actions">
+          <button type="button" class="btn btn-outline grow" id="import-btn"><span data-icon="upload"></span>Import</button>
+          <button type="button" class="btn btn-outline grow" id="export-btn"><span data-icon="download"></span>Export</button>
+        </div>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+      </section>
+
+      <section class="section" aria-labelledby="s-log">
+        <h2 id="s-log">Chat log</h2>
+        <p class="hint">What the panel read from the open chat for suggestions, newest first. It is kept only while the panel is open and never saved or sent.</p>
+        <pre class="log" id="log-text"></pre>
+        <div class="actions">
+          <button type="button" class="btn btn-outline grow" id="log-clear">Clear</button>
+          <button type="button" class="btn btn-primary grow" id="log-copy">Copy log</button>
+        </div>
+      </section>
+    </div>
+  </div>
 
   <div class="scrim" id="scrim" hidden></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
@@ -75,45 +126,6 @@
       <div class="actions">
         <button type="button" class="btn btn-outline grow" id="sheet-cancel">Cancel</button>
         <button type="button" class="btn btn-primary grow" id="sheet-save">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="sheet" id="sites-sheet" role="dialog" aria-modal="true" aria-labelledby="sites-title" hidden>
-    <div class="grip"></div>
-    <div class="sheet-head">
-      <h2 id="sites-title">Sites</h2>
-      <button type="button" class="icon-btn close" id="sites-close" aria-label="Close"><span data-icon="x"></span></button>
-    </div>
-    <div class="sheet-body">
-      <p class="hint">Templates are inserted straight into the chat box on these sites. On any other site, click the toolbar icon on that tab first, or the text is copied instead.</p>
-      <ul class="sites" id="sites-list"></ul>
-      <div class="field">
-        <label for="f-site">Add site</label>
-        <div class="add-row">
-          <input id="f-site" type="text" autocomplete="off" placeholder="facebook.com">
-          <button type="button" class="btn btn-outline" id="site-add">Add</button>
-        </div>
-      </div>
-      <div class="actions">
-        <button type="button" class="btn btn-outline grow" id="sites-reset">Reset to defaults</button>
-        <button type="button" class="btn btn-primary grow" id="sites-allow">Allow all</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="sheet" id="log-sheet" role="dialog" aria-modal="true" aria-labelledby="log-title" hidden>
-    <div class="grip"></div>
-    <div class="sheet-head">
-      <h2 id="log-title">Chat log</h2>
-      <button type="button" class="icon-btn close" id="log-close" aria-label="Close"><span data-icon="x"></span></button>
-    </div>
-    <div class="sheet-body">
-      <p class="hint">What the panel read from the open chat for suggestions, newest first. It is kept only while the panel is open and never saved or sent.</p>
-      <pre class="log" id="log-text"></pre>
-      <div class="actions">
-        <button type="button" class="btn btn-outline grow" id="log-clear">Clear</button>
-        <button type="button" class="btn btn-primary grow" id="log-copy">Copy log</button>
       </div>
     </div>
   </div>
