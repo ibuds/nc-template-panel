@@ -23,14 +23,14 @@ Page text is only kept in the panel's memory; it is never stored or sent. Only t
 
 **Matching.** Text is lowercased, punctuation and emoji removed, chat shorthand expanded (`brp` > `berapa`, `hrg` > `harga`, `tgl` > `tanggal`, `tf` > `transfer` ...), `-nya/-lah/-kah/-pun/-ku/-mu` trimmed, filler words dropped (`kak, ya, dong, mau, bisa` ...). Each template scores per customer word:
 - matches one of its **Keywords** (exact, one typo, or a shared 5+ letter start): 3
-- else appears in its text or category: rarity weight (log IDF, max 2); a typo match gets 70% of that
+- else appears in its text or category: 1.5 if at most a third of the templates use the word, 1 if up to 60%, else 0.5; a typo match gets 70% of that
 - plus learned weight: 1.2 x how often staff picked this template for that word (max 3), halving every 30 days
 
-Newest message counts x1, the one before x0.6, then x0.36. Templates scoring 2 or more are shown, best first (ties: most used). Learning is stored in `chrome.storage.local` under `learned` (`{templateId: {word: {w, t}}}`, max 150 words per template); it is updated when a template is inserted or copied while a chat is open. It is not part of Export.
+Newest message counts x1, the one before x0.6, then x0.36. Templates scoring 1.5 or more are shown, best first (ties: most used). Learning is stored in `chrome.storage.local` under `learned` (`{templateId: {word: {w, t}}}`, max 150 words per template); it is updated when a template is inserted or copied while a chat is open. It is not part of Export.
 
 **Not yet verified on the real sites** (no signed-in session during development): tested on a mock DM page with an inbox column, header, centred timestamps, our replies and "Seen". 
 
-**Chat log** (scroll icon in the header): every read, newest first, with the status (e.g. `Cannot see this tab: its site is not allowed in Sites`, `Reader: no-composer`, `OK`), the customer messages taken, every template's score (including ones below the threshold of 2) and, for the newest read, the reader's debug details: message box found, chat pane bounds, text blocks kept and dropped, and the last 12 lines it classified as IN (customer) or OUT (us). **Copy log** puts it on the clipboard. It lives in memory only and is cleared when the panel closes.
+**Chat log** (scroll icon in the header): every read, newest first, with the status (e.g. `Cannot see this tab: its site is not allowed in Sites`, `Reader: no-composer`, `OK`), the customer messages taken, every template's score (including ones below the threshold of 1.5) and, for the newest read, the reader's debug details: message box found, chat pane bounds, text blocks kept and dropped, and the last 12 lines it classified as IN (customer) or OUT (us). **Copy log** puts it on the clipboard. It lives in memory only and is cleared when the panel closes.
 
 ## Permissions
 

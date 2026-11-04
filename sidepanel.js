@@ -388,7 +388,7 @@
         rec.messages.forEach(function (m) { lines.push('  customer: "' + m + '"'); });
         var scores = NCMatch.suggest(active, rec.messages, state.learned, Date.now(), 5, 0.01);
         lines.push('  scores (shown at ' + NCMatch.MIN_SCORE + '+): ' + (scores.length ? scores.map(function (s) {
-          return s.template.category + ' "' + s.template.body.slice(0, 24) + '..." ' + s.score.toFixed(1) + ' [' + s.matched.join(', ') + ']';
+          return s.template.category + ' "' + s.template.body.replace(/\s+/g, ' ').slice(0, 24) + '..." ' + s.score.toFixed(1) + ' [' + s.matched.join(', ') + ']';
         }).join(' | ') : 'no template shares a word with these messages'));
       }
       if (i === 0 && rec.debug) {

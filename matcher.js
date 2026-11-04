@@ -71,7 +71,8 @@ var NCMatch = (function () {
     return e ? e.w * Math.pow(0.5, (now - e.t) / HALF_LIFE) : 0;
   }
 
-  var MIN_SCORE = 2;
+  // One keyword (3) always passes; so does one word shared with the text of at most a third of the templates.
+  var MIN_SCORE = 1.5;
 
   // messages: oldest first. Returns up to `limit` {template, score, matched[]} scoring at least
   // `minScore` (default MIN_SCORE; the Chat log passes a lower one to show near misses).
@@ -82,7 +83,12 @@ var NCMatch = (function () {
     });
     var df = {};
     docs.forEach(function (d) { d.words.forEach(function (w) { df[w] = (df[w] || 0) + 1; }); });
-    var idf = function (w) { return Math.min(2, Math.log(1 + docs.length / (df[w] || 1))); };
+    // A word shared with the template text: enough on its own (1.5) when at most a third of the
+    // templates use it, weaker when it is common across them.
+    var idf = function (w) {
+      var share = (df[w] || 1) / docs.length;
+      return share <= 0.34 ? 1.5 : share <= 0.6 ? 1 : 0.5;
+    };
 
     // Newest message counts most.
     var msgs = messages.slice(-3).reverse().map(function (m, i) {
