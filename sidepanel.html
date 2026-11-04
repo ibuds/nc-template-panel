@@ -11,6 +11,7 @@
   <header class="top">
     <h1>Templates</h1>
     <div class="top-actions">
+      <button type="button" class="icon-btn" id="log-btn" aria-label="Chat log" title="Chat log"><span data-icon="scroll-text"></span></button>
       <button type="button" class="icon-btn" id="sites-btn" aria-label="Sites" title="Sites"><span data-icon="globe"></span></button>
       <button type="button" class="btn btn-primary" id="new-btn"><span data-icon="plus"></span>New template</button>
     </div>
@@ -90,13 +91,29 @@
       <div class="field">
         <label for="f-site">Add site</label>
         <div class="add-row">
-          <input id="f-site" type="text" autocomplete="off" placeholder="www.facebook.com">
+          <input id="f-site" type="text" autocomplete="off" placeholder="facebook.com">
           <button type="button" class="btn btn-outline" id="site-add">Add</button>
         </div>
       </div>
       <div class="actions">
         <button type="button" class="btn btn-outline grow" id="sites-reset">Reset to defaults</button>
         <button type="button" class="btn btn-primary grow" id="sites-allow">Allow all</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet" id="log-sheet" role="dialog" aria-modal="true" aria-labelledby="log-title" hidden>
+    <div class="grip"></div>
+    <div class="sheet-head">
+      <h2 id="log-title">Chat log</h2>
+      <button type="button" class="icon-btn close" id="log-close" aria-label="Close"><span data-icon="x"></span></button>
+    </div>
+    <div class="sheet-body">
+      <p class="hint">What the panel read from the open chat for suggestions, newest first. It is kept only while the panel is open and never saved or sent.</p>
+      <pre class="log" id="log-text"></pre>
+      <div class="actions">
+        <button type="button" class="btn btn-outline grow" id="log-clear">Clear</button>
+        <button type="button" class="btn btn-primary grow" id="log-copy">Copy log</button>
       </div>
     </div>
   </div>

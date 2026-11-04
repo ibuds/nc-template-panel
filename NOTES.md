@@ -28,7 +28,9 @@ Page text is only kept in the panel's memory; it is never stored or sent. Only t
 
 Newest message counts x1, the one before x0.6, then x0.36. Templates scoring 2 or more are shown, best first (ties: most used). Learning is stored in `chrome.storage.local` under `learned` (`{templateId: {word: {w, t}}}`, max 150 words per template); it is updated when a template is inserted or copied while a chat is open. It is not part of Export.
 
-**Not yet verified on the real sites** (no signed-in session during development): tested on a mock DM page with an inbox column, header, centred timestamps, our replies and "Seen". If suggestions show the wrong text, open the panel's DevTools and run `chrome.scripting.executeScript({target:{tabId: <id>}, func: readConversation})` on the chat tab, or send the chat pane's HTML.
+**Not yet verified on the real sites** (no signed-in session during development): tested on a mock DM page with an inbox column, header, centred timestamps, our replies and "Seen". 
+
+**Chat log** (scroll icon in the header): every read, newest first, with the status (e.g. `Cannot see this tab: its site is not allowed in Sites`, `Reader: no-composer`, `OK`), the customer messages taken, every template's score (including ones below the threshold of 2) and, for the newest read, the reader's debug details: message box found, chat pane bounds, text blocks kept and dropped, and the last 12 lines it classified as IN (customer) or OUT (us). **Copy log** puts it on the clipboard. It lives in memory only and is cleared when the panel closes.
 
 ## Permissions
 
@@ -36,10 +38,10 @@ Newest message counts x1, the one before x0.6, then x0.36. Templates scoring 2 o
 
 ### Sites (direct insert)
 
-The globe button in the header opens **Sites**: the list of sites where a card click goes straight into the chat box. Defaults: `web.whatsapp.com`, `www.instagram.com`, `www.threads.com`, `www.threads.net`, `www.tiktok.com`, `x.com`.
+The globe button in the header opens **Sites**: the list of sites where a card click goes straight into the chat box. Defaults: `whatsapp.com`, `instagram.com`, `threads.com`, `threads.net`, `tiktok.com`, `x.com`. Each entry is a bare domain and is granted as `https://*.<domain>/*`, which covers the domain itself and every subdomain (`www.`, `web.`). Lists saved by older versions (`www.instagram.com`, `web.whatsapp.com`) are converted on load and their old exact grants removed, so staff click **Allow** once more.
 
 - The defaults are *listed* on install but not yet *allowed*. A banner "Direct insert is off on N sites" shows until staff click **Allow** (one Chrome prompt for all of them).
-- **Add site** takes a host (`www.facebook.com`), a URL, or a wildcard (`*.example.com`) and asks Chrome for access to `https://<host>/*` right away.
+- **Add site** takes a domain (`facebook.com`), a host with `www.`, a URL, or a wildcard (`*.example.com`); all become the bare domain, and Chrome is asked for `https://*.<domain>/*` right away.
 - The **x** on a row removes the site and gives the access back. **Reset to defaults** restores the six defaults and drops access for any extra sites.
 - The list is stored in `chrome.storage.local` under `sites`. What is actually granted is Chrome's own record, so the chips also follow changes made in `chrome://extensions` (Site access).
 

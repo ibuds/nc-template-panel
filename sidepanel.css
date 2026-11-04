@@ -134,6 +134,11 @@ button.card-body:hover { background: #f8f9fa; }
 .is-suggested .card-text { -webkit-line-clamp: 3; }
 .match { font-size: 11px; color: var(--text-2); }
 
+.log {
+  max-height: 55vh; overflow: auto; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--track);
+  font: 11px/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
 .top-actions { display: flex; align-items: center; gap: 4px; }
 
 .banner {

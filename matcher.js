@@ -71,9 +71,12 @@ var NCMatch = (function () {
     return e ? e.w * Math.pow(0.5, (now - e.t) / HALF_LIFE) : 0;
   }
 
-  // messages: oldest first. Returns up to `limit` {template, score, matched[]} above the threshold.
-  function suggest(templates, messages, learned, now, limit) {
-    var MIN_SCORE = 2;
+  var MIN_SCORE = 2;
+
+  // messages: oldest first. Returns up to `limit` {template, score, matched[]} scoring at least
+  // `minScore` (default MIN_SCORE; the Chat log passes a lower one to show near misses).
+  function suggest(templates, messages, learned, now, limit, minScore) {
+    if (minScore == null) minScore = MIN_SCORE;
     var docs = templates.map(function (t) {
       return { t: t, kw: tokenize(t.keywords), words: new Set(tokenize(t.body + ' ' + t.category)) };
     });
@@ -109,7 +112,7 @@ var NCMatch = (function () {
     });
 
     return out
-      .filter(function (s) { return s.score >= MIN_SCORE; })
+      .filter(function (s) { return s.score >= minScore; })
       .sort(function (a, b) { return b.score - a.score || (b.template.useCount || 0) - (a.template.useCount || 0); })
       .slice(0, limit);
   }
@@ -131,5 +134,5 @@ var NCMatch = (function () {
     return learned;
   }
 
-  return { tokenize: tokenize, suggest: suggest, learn: learn };
+  return { tokenize: tokenize, suggest: suggest, learn: learn, MIN_SCORE: MIN_SCORE };
 })();

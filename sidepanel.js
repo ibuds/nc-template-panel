@@ -14,12 +14,14 @@
     'x': '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     'download': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
     'upload': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+    'scroll-text': '<path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/>',
     'globe': '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>'
   };
 
   // Sites where templates go straight into the chat box (optional host permissions, granted by staff).
   var SITES_KEY = 'sites';
-  var DEFAULT_SITES = ['web.whatsapp.com', 'www.instagram.com', 'www.threads.com', 'www.threads.net', 'www.tiktok.com', 'x.com'];
+  // Bare domains; each covers the domain itself and every subdomain (www., web. ...).
+  var DEFAULT_SITES = ['whatsapp.com', 'instagram.com', 'threads.com', 'threads.net', 'tiktok.com', 'x.com'];
 
   var SEED = [
     ['General', 'Hi, thank you for contacting Next Concert. Which date and concert would you like to rent for?', 'halo, hai, hi, hello, info, tanya, permisi'],
@@ -335,38 +337,113 @@
     convoBusy = true;
     chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(function (tabs) {
       var tab = tabs[0];
+      if (!tab) return { status: 'No active tab' };
+      // Chrome hides the URL of tabs on sites the extension has no access to.
+      if (!tab.url) return { status: 'Cannot see this tab: its site is not allowed in Sites' };
       var host = '';
-      try { host = tab && tab.url ? new URL(tab.url).hostname : ''; } catch (e) { host = ''; }
-      if (!SUGGEST_HOSTS.test(host)) return null;
+      try { host = new URL(tab.url).hostname; } catch (e) { host = ''; }
+      if (!SUGGEST_HOSTS.test(host)) return { host: host, status: 'Not an Instagram or Threads tab' };
       return chrome.scripting.executeScript({ target: { tabId: tab.id }, func: readConversation }).then(function (res) {
-        return res && res[0] && res[0].result;
+        var r = res && res[0] && res[0].result;
+        return { host: host, reader: r, status: !r ? 'Reader returned nothing' : r.ok ? 'OK' : 'Reader: ' + r.reason };
+      }, function (err) {
+        return { host: host, status: 'Could not run reader: ' + (err && err.message) };
       });
-    }).catch(function () { return null; }).then(function (r) {
+    }).catch(function (err) {
+      return { status: 'Error: ' + (err && err.message) };
+    }).then(function (rec) {
       convoBusy = false;
+      var r = rec.reader;
       var convo = r && r.ok ? { site: r.site, messages: r.messages } : null;
       if (JSON.stringify(convo) !== JSON.stringify(state.convo)) {
         state.convo = convo;
         renderSuggest();
       }
+      logRead({ at: Date.now(), host: rec.host || '', status: rec.status, messages: convo && convo.messages, debug: r && r.debug });
     });
+  }
+
+  /* ---------- chat log ---------- */
+
+  // In memory only, newest first. Repeated identical reads update the newest entry instead of adding one.
+  var convoLog = [];
+  function logRead(rec) {
+    rec.sig = JSON.stringify([rec.host, rec.status, rec.messages]);
+    if (convoLog[0] && convoLog[0].sig === rec.sig) {
+      convoLog[0].at = rec.at;
+      convoLog[0].debug = rec.debug;
+    } else {
+      convoLog.unshift(rec);
+      if (convoLog.length > 30) convoLog.length = 30;
+    }
+    if (!$('log-sheet').hidden) renderLog();
+  }
+
+  function logText() {
+    var active = state.templates.filter(function (t) { return !t.archived; });
+    var lines = [];
+    convoLog.forEach(function (rec, i) {
+      lines.push(new Date(rec.at).toLocaleTimeString() + '  ' + (rec.host || '-') + '  ' + rec.status);
+      if (rec.messages) {
+        rec.messages.forEach(function (m) { lines.push('  customer: "' + m + '"'); });
+        var scores = NCMatch.suggest(active, rec.messages, state.learned, Date.now(), 5, 0.01);
+        lines.push('  scores (shown at ' + NCMatch.MIN_SCORE + '+): ' + (scores.length ? scores.map(function (s) {
+          return s.template.category + ' "' + s.template.body.slice(0, 24) + '..." ' + s.score.toFixed(1) + ' [' + s.matched.join(', ') + ']';
+        }).join(' | ') : 'no template shares a word with these messages'));
+      }
+      if (i === 0 && rec.debug) {
+        Object.keys(rec.debug).forEach(function (k) {
+          var v = rec.debug[k];
+          if (Array.isArray(v)) {
+            lines.push('  ' + k + ':');
+            v.forEach(function (x) { lines.push('    ' + x); });
+          } else {
+            lines.push('  ' + k + ': ' + v);
+          }
+        });
+      }
+      lines.push('');
+    });
+    return lines.join('\n') || 'Nothing read yet. Open an Instagram or Threads DM.';
+  }
+
+  function renderLog() {
+    $('log-text').textContent = logText();
+  }
+
+  function openLog() {
+    lastFocus = document.activeElement;
+    renderLog();
+    $('scrim').hidden = false;
+    $('log-sheet').hidden = false;
+    $('log-close').focus();
+  }
+
+  function closeLog() {
+    $('scrim').hidden = true;
+    $('log-sheet').hidden = true;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
 
   /* ---------- sites ---------- */
 
+  // "*.instagram.com" matches instagram.com itself as well as www.instagram.com.
   function sitePattern(host) {
-    return 'https://' + host + '/*';
+    return 'https://*.' + host + '/*';
   }
 
-  // Accepts "x.com", "https://www.facebook.com/messages" or "*.example.com"; returns a host or null.
+  // Accepts "x.com", "www.instagram.com", "https://www.facebook.com/messages" or "*.example.com";
+  // returns the bare domain ("facebook.com") or null.
   function normaliseHost(input) {
     var s = String(input || '').trim().toLowerCase();
     if (!s) return null;
     if (s.indexOf('://') !== -1) {
-      try { s = new URL(s.replace(/^\*\./, '')).hostname; } catch (e) { return null; }
+      try { s = new URL(s.replace('://*.', '://')).hostname; } catch (e) { return null; }
     } else {
       s = s.split('/')[0].split(':')[0];
     }
-    return /^(\*\.)?([a-z0-9-]+\.)+[a-z]{2,}$/.test(s) ? s : null;
+    s = s.replace(/^\*\./, '').replace(/^www\./, '');
+    return /^([a-z0-9-]+\.)+[a-z]{2,}$/.test(s) ? s : null;
   }
 
   function saveSites() {
@@ -375,7 +452,22 @@
 
   function loadSites() {
     return chrome.storage.local.get(SITES_KEY).then(function (res) {
-      state.sites = Array.isArray(res[SITES_KEY]) ? res[SITES_KEY] : DEFAULT_SITES.slice();
+      if (!Array.isArray(res[SITES_KEY])) {
+        state.sites = DEFAULT_SITES.slice();
+        return;
+      }
+      // Older versions stored exact hosts ("www.instagram.com", "web.whatsapp.com") that missed the
+      // bare domain. Convert them and drop the old exact grants; staff click Allow once more.
+      var old = res[SITES_KEY];
+      var legacy = { 'web.whatsapp.com': 'whatsapp.com' };
+      state.sites = [];
+      old.forEach(function (h) {
+        var bare = legacy[h] || normaliseHost(h);
+        if (bare && state.sites.indexOf(bare) === -1) state.sites.push(bare);
+      });
+      if (JSON.stringify(old) === JSON.stringify(state.sites)) return;
+      var stale = old.filter(function (h) { return h.indexOf('*.') !== 0; }).map(function (h) { return 'https://' + h + '/*'; });
+      return chrome.permissions.remove({ origins: stale }).catch(function () {}).then(saveSites);
     });
   }
 
@@ -549,6 +641,7 @@
     $('scrim').addEventListener('click', function () {
       if (!$('sheet').hidden) closeSheet();
       if (!$('sites-sheet').hidden) closeSites();
+      if (!$('log-sheet').hidden) closeLog();
     });
     $('sheet-save').addEventListener('click', saveSheet);
     $('f-body').addEventListener('input', function () { $('f-body').classList.remove('invalid'); });
@@ -556,8 +649,15 @@
       if (e.key !== 'Escape') return;
       if (!$('sheet').hidden) closeSheet();
       if (!$('sites-sheet').hidden) closeSites();
+      if (!$('log-sheet').hidden) closeLog();
     });
 
+    $('log-btn').addEventListener('click', openLog);
+    $('log-close').addEventListener('click', closeLog);
+    $('log-clear').addEventListener('click', function () { convoLog = []; renderLog(); });
+    $('log-copy').addEventListener('click', function () {
+      copyText(logText()).then(function (ok) { toast(ok ? 'Log copied' : 'Could not copy'); });
+    });
     $('sites-btn').addEventListener('click', openSites);
     $('sites-close').addEventListener('click', closeSites);
     $('banner-allow').addEventListener('click', function () { allowSites(missingSites()); });
