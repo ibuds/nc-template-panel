@@ -22,18 +22,22 @@
   var DEFAULT_SITES = ['web.whatsapp.com', 'www.instagram.com', 'www.threads.com', 'www.threads.net', 'www.tiktok.com', 'x.com'];
 
   var SEED = [
-    ['General', 'Hi, thank you for contacting Next Concert. Which date and concert would you like to rent for?'],
-    ['Orders', 'The unit is still available for that date. Could you send your full name and WhatsApp number so we can note it down?'],
-    ['Pricing', 'The rental price is Rp [PRICE] per day, including [INCLUDED]. Rentals of 2 days or more get a discount.'],
-    ['Payment', 'You can pay via QRIS or bank transfer. A down payment of Rp [DP] locks in your date, and the rest is paid at pickup.'],
-    ['Pickup', 'Pickup is at [LOCATION] at [TIME]. Please bring your original ID card.'],
-    ['Orders', 'Your order under the name [NAME] for [DATE] has been noted. Please pay the Rp [DP] down payment by [DEADLINE] to lock in the unit.'],
-    ['Returns', 'Please return the unit by [TIME] on [DATE]. Late returns are charged per extra day.'],
-    ['General', 'Thank you. Let us know if you have any other questions.']
+    ['General', 'Hi, thank you for contacting Next Concert. Which date and concert would you like to rent for?', 'halo, hai, hi, hello, info, tanya, permisi'],
+    ['Orders', 'The unit is still available for that date. Could you send your full name and WhatsApp number so we can note it down?', 'ready, tersedia, available, kosong, booking, pesan, sewa'],
+    ['Pricing', 'The rental price is Rp [PRICE] per day, including [INCLUDED]. Rentals of 2 days or more get a discount.', 'harga, pricelist, berapa, biaya, price, tarif, rate'],
+    ['Payment', 'You can pay via QRIS or bank transfer. A down payment of Rp [DP] locks in your date, and the rest is paid at pickup.', 'bayar, pembayaran, transfer, qris, dp, rekening, payment'],
+    ['Pickup', 'Pickup is at [LOCATION] at [TIME]. Please bring your original ID card.', 'ambil, pickup, alamat, lokasi, dimana, jam'],
+    ['Orders', 'Your order under the name [NAME] for [DATE] has been noted. Please pay the Rp [DP] down payment by [DEADLINE] to lock in the unit.', 'konfirmasi, jadi, fix, order, nama'],
+    ['Returns', 'Please return the unit by [TIME] on [DATE]. Late returns are charged per extra day.', 'kembali, balikin, pengembalian, return, telat'],
+    ['General', 'Thank you. Let us know if you have any other questions.', 'makasih, terima, kasih, oke, siap']
   ];
 
+  var LEARN_KEY = 'learned';
+  // Sites whose DMs the panel reads to suggest templates (only when that site is allowed in Sites).
+  var SUGGEST_HOSTS = /(^|\.)(instagram\.com|threads\.com|threads\.net)$/;
+
   var $ = function (id) { return document.getElementById(id); };
-  var state = { templates: [], tab: 'active', query: '', editingId: null, sites: [], allowed: {} };
+  var state = { templates: [], tab: 'active', query: '', editingId: null, sites: [], allowed: {}, convo: null, learned: {} };
   var toastTimer = null;
   var lastFocus = null;
 
@@ -57,13 +61,23 @@
   }
 
   function load() {
-    return chrome.storage.local.get(STORAGE_KEY).then(function (res) {
+    return chrome.storage.local.get([STORAGE_KEY, LEARN_KEY]).then(function (res) {
+      state.learned = res[LEARN_KEY] && typeof res[LEARN_KEY] === 'object' ? res[LEARN_KEY] : {};
       if (Array.isArray(res[STORAGE_KEY])) {
         state.templates = res[STORAGE_KEY];
+        // Templates from before keywords existed: give the untouched samples their keywords.
+        var changed = false;
+        state.templates.forEach(function (t) {
+          if (typeof t.keywords === 'string') return;
+          var seed = SEED.filter(function (s) { return s[1] === t.body; })[0];
+          t.keywords = seed ? seed[2] : '';
+          changed = true;
+        });
+        if (changed) return save();
       } else {
         var now = Date.now();
         state.templates = SEED.map(function (s, i) {
-          return { id: uid(), body: s[1], category: s[0], archived: false, createdAt: now - i, updatedAt: now - i, useCount: 0 };
+          return { id: uid(), body: s[1], category: s[0], keywords: s[2], archived: false, createdAt: now - i, updatedAt: now - i, useCount: 0 };
         });
         return save();
       }
@@ -96,7 +110,7 @@
 
     var q = state.query.trim().toLowerCase();
     var shown = (showArchived ? archived : active).filter(function (t) {
-      return !q || (t.body + ' ' + t.category).toLowerCase().indexOf(q) !== -1;
+      return !q || (t.body + ' ' + t.category + ' ' + (t.keywords || '')).toLowerCase().indexOf(q) !== -1;
     });
 
     var grid = $('grid');
@@ -105,6 +119,33 @@
     var empty = $('empty');
     empty.hidden = shown.length > 0;
     empty.textContent = q ? 'No templates match.' : (showArchived ? 'No archived templates.' : 'No templates yet.');
+    renderSuggest();
+  }
+
+  // Up to 3 templates that fit the customer's latest messages; hidden while searching or on Archived.
+  function renderSuggest() {
+    var box = $('suggest');
+    var list = [];
+    if (state.convo && state.tab === 'active' && !state.query.trim()) {
+      var active = state.templates.filter(function (t) { return !t.archived; });
+      list = NCMatch.suggest(active, state.convo.messages, state.learned, Date.now(), 3);
+    }
+    box.hidden = list.length === 0;
+    var wrap = $('suggest-list');
+    wrap.textContent = '';
+    if (!list.length) return;
+    var last = state.convo.messages[state.convo.messages.length - 1];
+    $('suggest-from').textContent = '"' + last + '"';
+    $('suggest-from').title = state.convo.messages.join('\n');
+    list.forEach(function (s) {
+      var el = card(s.template, false);
+      el.classList.add('is-suggested');
+      var match = document.createElement('span');
+      match.className = 'match';
+      match.textContent = 'Matched: ' + s.matched.join(', ');
+      el.querySelector('.card-body').appendChild(match);
+      wrap.appendChild(el);
+    });
   }
 
   function iconButton(name, label, onClick) {
@@ -196,6 +237,11 @@
       var cur = find(t.id) || t;
       cur.useCount = (cur.useCount || 0) + 1;
       save();
+      // Remember which words led to this template, so suggestions improve with use.
+      if (state.convo) {
+        NCMatch.learn(state.learned, t.id, state.convo.messages, Date.now());
+        chrome.storage.local.set({ [LEARN_KEY]: state.learned });
+      }
     }
     function fallback() {
       copyText(t.body).then(function (ok) {
@@ -237,6 +283,7 @@
     $('sheet-title').textContent = t ? 'Edit template' : 'New template';
     $('f-body').value = t ? t.body : '';
     $('f-cat').value = t ? t.category : '';
+    $('f-kw').value = t ? (t.keywords || '') : '';
     $('f-body').classList.remove('invalid');
     $('scrim').hidden = false;
     $('sheet').hidden = false;
@@ -253,6 +300,7 @@
   function saveSheet() {
     var body = $('f-body').value.trim();
     var category = $('f-cat').value.trim() || 'General';
+    var keywords = $('f-kw').value.split(',').map(function (k) { return k.trim(); }).filter(Boolean).join(', ');
     if (!body) {
       $('f-body').classList.add('invalid');
       $('f-body').focus();
@@ -263,9 +311,10 @@
     if (t) {
       t.body = body;
       t.category = category;
+      t.keywords = keywords;
       t.updatedAt = now;
     } else {
-      state.templates.unshift({ id: uid(), body: body, category: category, archived: false, createdAt: now, updatedAt: now, useCount: 0 });
+      state.templates.unshift({ id: uid(), body: body, category: category, keywords: keywords, archived: false, createdAt: now, updatedAt: now, useCount: 0 });
     }
     var wasEdit = !!t;
     save().then(function () {
@@ -273,6 +322,32 @@
       state.tab = 'active';
       render();
       toast(wasEdit ? 'Template updated' : 'Template saved');
+    });
+  }
+
+  /* ---------- conversation (suggestions) ---------- */
+
+  // Reads the open Instagram / Threads DM on the active tab. Chrome only gives the panel the tab's
+  // URL and lets it run the reader when that site is allowed in Sites, so other tabs are never read.
+  var convoBusy = false;
+  function refreshConvo() {
+    if (convoBusy || document.visibilityState !== 'visible') return;
+    convoBusy = true;
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(function (tabs) {
+      var tab = tabs[0];
+      var host = '';
+      try { host = tab && tab.url ? new URL(tab.url).hostname : ''; } catch (e) { host = ''; }
+      if (!SUGGEST_HOSTS.test(host)) return null;
+      return chrome.scripting.executeScript({ target: { tabId: tab.id }, func: readConversation }).then(function (res) {
+        return res && res[0] && res[0].result;
+      });
+    }).catch(function () { return null; }).then(function (r) {
+      convoBusy = false;
+      var convo = r && r.ok ? { site: r.site, messages: r.messages } : null;
+      if (JSON.stringify(convo) !== JSON.stringify(state.convo)) {
+        state.convo = convo;
+        renderSuggest();
+      }
     });
   }
 
@@ -426,6 +501,7 @@
       id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
       body: raw.body,
       category: typeof raw.category === 'string' && raw.category.trim() ? raw.category.trim() : 'General',
+      keywords: typeof raw.keywords === 'string' ? raw.keywords : '',
       archived: raw.archived === true,
       createdAt: Number(raw.createdAt) || now,
       updatedAt: Number(raw.updatedAt) || now,
@@ -517,8 +593,14 @@
       }
     });
 
-    load().then(render);
+    load().then(render).then(refreshConvo);
     loadSites().then(refreshAllowed);
+
+    // Follow the open chat: on tab switch, page navigation, and every few seconds while the panel is visible.
+    chrome.tabs.onActivated.addListener(refreshConvo);
+    chrome.tabs.onUpdated.addListener(function (id, info) { if (info.url || info.status === 'complete') refreshConvo(); });
+    document.addEventListener('visibilitychange', refreshConvo);
+    setInterval(refreshConvo, 2500);
   }
 
   init();

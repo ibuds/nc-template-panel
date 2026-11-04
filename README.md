@@ -23,6 +23,7 @@ Works in Google Chrome and other Chromium browsers (Edge, Brave), version 116 or
 
 If no message box is selected, the text is copied instead ("Copied, paste manually"): press Ctrl+V in the message box.
 
+- **Suggested** (Instagram and Threads DMs): when a chat is open, the panel reads the customer's latest messages and shows up to 3 fitting templates at the top, with the words that matched. Give each template **Keywords** (the words customers use, e.g. `harga, pricelist, berapa`) to make suggestions better; they also improve as staff pick templates. Nothing is sent anywhere: the matching runs in your browser.
 - **New template**: button at the top. The pencil edits, the box icon archives (restore it from the **Archived** tab).
 - **Sites** (globe icon): the sites where text is inserted directly. Add another site there, or remove one.
 - **Export / Import**: save your templates to a file, or load a file from a colleague.

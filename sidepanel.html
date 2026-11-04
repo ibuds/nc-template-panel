@@ -33,6 +33,13 @@
   </div>
 
   <section class="list" id="list-wrap">
+    <div class="suggest" id="suggest" hidden>
+      <div class="suggest-head">
+        <span class="cat">Suggested</span>
+        <span class="suggest-from" id="suggest-from"></span>
+      </div>
+      <div class="suggest-list" id="suggest-list"></div>
+    </div>
     <div class="grid" id="grid"></div>
     <p class="empty" id="empty" hidden>No templates match.</p>
   </section>
@@ -58,6 +65,11 @@
       <div class="field">
         <label for="f-cat">Category</label>
         <input id="f-cat" type="text" autocomplete="off" placeholder="General">
+      </div>
+      <div class="field">
+        <label for="f-kw">Keywords</label>
+        <input id="f-kw" type="text" autocomplete="off" placeholder="harga, pricelist, berapa">
+        <span class="hint">Words customers use when this reply fits, separated by commas. Used for suggestions.</span>
       </div>
       <div class="actions">
         <button type="button" class="btn btn-outline grow" id="sheet-cancel">Cancel</button>
@@ -92,6 +104,8 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </main>
 <script src="inject.js"></script>
+<script src="extract.js"></script>
+<script src="matcher.js"></script>
 <script src="sidepanel.js"></script>
 </body>
 </html>

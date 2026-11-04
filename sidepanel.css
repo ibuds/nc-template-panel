@@ -125,6 +125,15 @@ button.card-body:hover { background: #f8f9fa; }
 .field .invalid { border-color: #c0392b; }
 .actions { display: flex; gap: 12px; }
 
+.suggest { margin-bottom: 16px; }
+.suggest-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.suggest-from { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.suggest-list { display: flex; flex-direction: column; gap: 8px; }
+.card.is-suggested { border-color: var(--action); }
+.is-suggested .card-body { flex-direction: column; gap: 4px; }
+.is-suggested .card-text { -webkit-line-clamp: 3; }
+.match { font-size: 11px; color: var(--text-2); }
+
 .top-actions { display: flex; align-items: center; gap: 4px; }
 
 .banner {

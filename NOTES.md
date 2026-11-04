@@ -8,9 +8,31 @@ For install and daily use, see [README.md](README.md).
 
 Data lives in `chrome.storage.local` under the key `templates`: `{ id, body, category, archived, createdAt, updatedAt, useCount }`. It survives browser restarts. First run is seeded with the 8 sample templates from the mockup (placeholders such as `[PRICE]` stay literal).
 
+## Suggestions (Instagram and Threads DMs)
+
+Files: `extract.js` (`readConversation()`, run in the page) and `matcher.js` (`NCMatch`, runs in the panel).
+
+**Reading the chat.** While the panel is visible, it runs `readConversation` on the active tab every 2.5 s, on tab switch and on navigation, but only when the tab is on `instagram.com`, `threads.com` or `threads.net` *and* that site is allowed in Sites (without the grant Chrome hides the tab URL and refuses the script). Both sites use generated class names, so the reader uses layout, not selectors:
+1. The message box: the focused `contenteditable` / `textarea` / `role="textbox"`, else the lowest visible one.
+2. The chat pane: the first ancestor of the message box that is at least 60% of the window high (keeps the inbox column out).
+3. Text blocks in the pane (`[dir="auto"]`, else the text's parent), above the message box and below a 64 px header strip, outside links, buttons, headings, `time` and `aria-hidden`.
+4. Side: closer to the left edge = customer, right = us, centred (within 10% of width) = timestamp/system, dropped.
+5. Result: the customer's last run of messages (max 3), skipping our trailing messages such as "Seen".
+
+Page text is only kept in the panel's memory; it is never stored or sent. Only the words of a message staff answered are stored, as learning data (below).
+
+**Matching.** Text is lowercased, punctuation and emoji removed, chat shorthand expanded (`brp` > `berapa`, `hrg` > `harga`, `tgl` > `tanggal`, `tf` > `transfer` ...), `-nya/-lah/-kah/-pun/-ku/-mu` trimmed, filler words dropped (`kak, ya, dong, mau, bisa` ...). Each template scores per customer word:
+- matches one of its **Keywords** (exact, one typo, or a shared 5+ letter start): 3
+- else appears in its text or category: rarity weight (log IDF, max 2); a typo match gets 70% of that
+- plus learned weight: 1.2 x how often staff picked this template for that word (max 3), halving every 30 days
+
+Newest message counts x1, the one before x0.6, then x0.36. Templates scoring 2 or more are shown, best first (ties: most used). Learning is stored in `chrome.storage.local` under `learned` (`{templateId: {word: {w, t}}}`, max 150 words per template); it is updated when a template is inserted or copied while a chat is open. It is not part of Export.
+
+**Not yet verified on the real sites** (no signed-in session during development): tested on a mock DM page with an inbox column, header, centred timestamps, our replies and "Seen". If suggestions show the wrong text, open the panel's DevTools and run `chrome.scripting.executeScript({target:{tabId: <id>}, func: readConversation})` on the chat tab, or send the chat pane's HTML.
+
 ## Permissions
 
-`sidePanel`, `storage`, `activeTab`, `scripting`, plus `optional_host_permissions: ["https://*/*"]`. No required `host_permissions`, no content scripts. The panel never reads page content; the only code that touches the page is the insert function in `inject.js`, run when a card is clicked.
+`sidePanel`, `storage`, `activeTab`, `scripting`, plus `optional_host_permissions: ["https://*/*"]`. No required `host_permissions`, no content scripts. Two functions touch the page: `insertIntoFocusedField` (`inject.js`), run when a card is clicked, and `readConversation` (`extract.js`), which reads DMs on Instagram and Threads only (see Suggestions). No other page content is read.
 
 ### Sites (direct insert)
 
